@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCash ATM - Administration Terminal</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="admin-body">
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header admin-header">
+            <div class="logo">
+                <i class="fa-solid fa-shield-halved logo-icon admin-color"></i>
+                <span>SMART<span>CASH</span> ADMIN</span>
+            </div>
+            <div class="system-status">
+                <a href="/" class="admin-link-btn back-to-atm-btn"><i class="fa-solid fa-building-columns"></i> Back to ATM</a>
+                <button id="admin-logout-btn" onclick="adminLogout()" class="admin-btn-logout hidden"><i class="fa-solid fa-power-off"></i> Logout</button>
+            </div>
+        </header>
+
+        <!-- Login Container -->
+        <div id="admin-login-container" class="admin-content-centered">
+            <div class="glass-card login-card">
+                <div class="login-header">
+                    <div class="login-icon-box">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <h2>Secure Admin Access</h2>
+                    <p>Enter administrative credentials to proceed</p>
+                </div>
+                
+                <div class="login-form">
+                    <div class="error-banner hidden" id="login-error-msg">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>Invalid credentials.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="admin-username">Username</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" id="admin-username" placeholder="Enter username">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="admin-password">Security Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key"></i>
+                            <input type="password" id="admin-password" placeholder="Enter password">
+                        </div>
+                    </div>
+
+                    <button onclick="adminLogin()" class="login-submit-btn">
+                        <span>Authorize Access</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Admin Dashboard Content -->
+        <div id="admin-dashboard-container" class="admin-dashboard-main hidden">
+            <!-- Summary Stats Section -->
+            <section class="stats-grid">
+                <div class="glass-card stat-card">
+                    <div class="stat-content">
+                        <span class="stat-label">Total ATM Users</span>
+                        <span class="stat-value" id="stat-total-users">0</span>
+                    </div>
+                    <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                </div>
+
+                <div class="glass-card stat-card">
+                    <div class="stat-content">
+                        <span class="stat-label">Total Cash Pool</span>
+                        <span class="stat-value" id="stat-total-cash">$0.00</span>
+                    </div>
+                    <div class="stat-icon"><i class="fa-solid fa-vault"></i></div>
+                </div>
+
+                <div class="glass-card stat-card">
+                    <div class="stat-content">
+                        <span class="stat-label">Successful Tx</span>
+                        <span class="stat-value text-green" id="stat-success-tx">0</span>
+                    </div>
+                    <div class="stat-icon text-green"><i class="fa-solid fa-circle-check"></i></div>
+                </div>
+
+                <div class="glass-card stat-card">
+                    <div class="stat-content">
+                        <span class="stat-label">Total Withdrawn</span>
+                        <span class="stat-value" id="stat-withdrawn-volume">$0.00</span>
+                    </div>
+                    <div class="stat-icon text-cyan"><i class="fa-solid fa-money-bill-wave"></i></div>
+                </div>
+            </section>
+
+            <!-- Columns Layout: Left (Users) | Right (Transactions) -->
+            <div class="dashboard-columns">
+                <!-- User Accounts Section -->
+                <section class="dashboard-column flex-2">
+                    <div class="glass-card table-card">
+                        <div class="table-header">
+                            <h3><i class="fa-solid fa-users-gear"></i> Managed User Accounts</h3>
+                            <button class="table-refresh-btn" onclick="fetchDashboardData()" title="Reload Data">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Card Number</th>
+                                        <th>Account Type</th>
+                                        <th class="text-right">Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- Dynamic rows -->
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Loading user accounts...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Transactions History Section -->
+                <section class="dashboard-column flex-3">
+                    <div class="glass-card table-card">
+                        <div class="table-header">
+                            <h3><i class="fa-solid fa-clock-history"></i> System Transaction Logs</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Card Number / User</th>
+                                        <th>Method</th>
+                                        <th>Amount</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body">
+                                    <!-- Dynamic rows -->
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Loading transaction records...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            <p>&copy; 2026 SmartCash Admin Console. Strictly Confidential. Unauthorized access subject to prosecution.</p>
+        </footer>
+    </div>
+
+    <!-- Admin Logic -->
+    <script>
+        // Check session on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check if admin is already logged in
+            fetch('/api/admin/data')
+                .then(res => {
+                    if (res.ok) {
+                        return res.json();
+                    }
+                    throw new Error('Unauthorized');
+                })
+                .then(data => {
+                    if (data.success) {
+                        showDashboard(data);
+                    }
+                })
+                .catch(err => {
+                    // Stay on login screen
+                });
+        });
+
+        function adminLogin() {
+            const userVal = document.getElementById('admin-username').value;
+            const passVal = document.getElementById('admin-password').value;
+            const errorBanner = document.getElementById('login-error-msg');
+
+            errorBanner.classList.add('hidden');
+
+            fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: userVal, password: passVal })
+            })
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error('Invalid login');
+            })
+            .then(data => {
+                if (data.success) {
+                    fetchDashboardData();
+                }
+            })
+            .catch(err => {
+                errorBanner.classList.remove('hidden');
+                beep(150, 400); // sound alert
+            });
+        }
+
+        function adminLogout() {
+            fetch('/api/admin/logout', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                location.reload();
+            });
+        }
+
+        function fetchDashboardData() {
+            fetch('/api/admin/data')
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error('Session unauthorized');
+            })
+            .then(data => {
+                if (data.success) {
+                    showDashboard(data);
+                }
+            })
+            .catch(err => {
+                alert('Session expired. Please log in again.');
+                location.reload();
+            });
+        }
+
+        function showDashboard(data) {
+            document.getElementById('admin-login-container').classList.add('hidden');
+            document.getElementById('admin-dashboard-container').classList.remove('hidden');
+            document.getElementById('admin-logout-btn').classList.remove('hidden');
+
+            renderStats(data);
+            renderUsers(data.users);
+            renderTransactions(data.transactions);
+        }
+
+        function renderStats(data) {
+            const users = data.users;
+            const txs = data.transactions;
+
+            // Total users
+            document.getElementById('stat-total-users').innerText = users.length;
+
+            // Total cash pool (sum of all user balances)
+            const cashSum = users.reduce((sum, u) => sum + u.balance, 0);
+            document.getElementById('stat-total-cash').innerText = '$' + cashSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            // Successful transactions count
+            const successTxs = txs.filter(t => t.status === 'Success');
+            document.getElementById('stat-success-tx').innerText = successTxs.length;
+
+            // Total cash volume withdrawn (sum of successful transactions)
+            const withdrawnVolume = successTxs.reduce((sum, t) => sum + t.amount, 0);
+            document.getElementById('stat-withdrawn-volume').innerText = '$' + withdrawnVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No accounts registered.</td></tr>';
+                return;
+            }
+
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="user-cell">
+                            <span class="user-avatar"><i class="fa-solid fa-user"></i></span>
+                            <span class="user-name">${u.name}</span>
+                        </div>
+                    </td>
+                    <td class="font-code">${formatCardNumber(u.card_number)}</td>
+                    <td><span class="acct-badge">${u.account_type}</span></td>
+                    <td class="text-right font-code font-bold">$${u.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderTransactions(txs) {
+            const tbody = document.getElementById('transactions-table-body');
+            tbody.innerHTML = '';
+
+            if (txs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No transactions recorded yet.</td></tr>';
+                return;
+            }
+
+            txs.forEach(t => {
+                const tr = document.createElement('tr');
+                const isSuccess = t.status === 'Success';
+                tr.innerHTML = `
+                    <td class="font-code text-muted">${t.timestamp}</td>
+                    <td>
+                        <div class="user-cell">
+                            <div class="flex-column">
+                                <span class="user-name">${t.user_name}</span>
+                                <span class="user-sub font-code">${formatCardNumber(t.card_number)}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="method-badge method-${t.method.toLowerCase()}">
+                            <i class="fa-solid ${t.method === 'Card' ? 'fa-credit-card' : 'fa-qrcode'}"></i>
+                            ${t.method}
+                        </span>
+                    </td>
+                    <td class="font-code font-bold ${isSuccess ? 'text-green' : 'text-red'}">
+                        $${t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td class="text-center">
+                        <span class="status-badge status-${t.status.toLowerCase()}">
+                            ${isSuccess ? '<i class="fa-solid fa-check"></i> Success' : '<i class="fa-solid fa-xmark"></i> Failed'}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function formatCardNumber(num) {
+            if (!num || num.length !== 16) return num;
+            return `${num.slice(0,4)} •••• •••• ${num.slice(12)}`;
+        }
+
+        // Web Audio Synthesizer Beeps for sound feedback
+        let audioCtx = null;
+        function beep(duration = 80, frequency = 500, type = 'sine') {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = type;
+                osc.frequency.value = frequency;
+                
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration/1000);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration/1000);
+            } catch (e) {
+                // Audio context not allowed/supported
+            }
+        }
+    </script>
+</body>
+</html>
